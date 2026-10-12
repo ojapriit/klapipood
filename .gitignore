@@ -33,3 +33,6 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 *.swp
+
+# Claude Code kohalikud seaded
+.claude/settings.local.json
