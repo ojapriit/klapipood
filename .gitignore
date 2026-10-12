@@ -36,3 +36,6 @@ Thumbs.db
 
 # Claude Code kohalikud seaded
 .claude/settings.local.json
+
+# CI tõendid ja aruanded
+reports

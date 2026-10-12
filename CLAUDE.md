@@ -14,6 +14,7 @@ npm run test        # Vitest ühiktestid (src/**/*.test.ts)
 npm run build       # tsc + vite build -> dist/
 npm run test:e2e    # Playwright: ehitab ja käivitab preview pordil 4173; projektid "desktop" ja "mobiil" (Pixel 7)
 npm run check       # kõik ülaltoodud järjest
+BASE_URL=https://… npx playwright test   # brauseritestid avaldatud versiooni vastu (eelvaade/avalik pood)
 ```
 
 Esimesel korral: `npx playwright install chromium`.
@@ -45,3 +46,15 @@ Esimesel korral: `npx playwright install chromium`.
 - Commit'i autor selles repos on GitHubi `noreply`-aadress; ära lisa isiklikke e-posti aadresse ega saladusi.
 
 Tavaline poe muudatus käib skilli `poe-muudatus` järgi (`.claude/skills/poe-muudatus/SKILL.md`).
+
+## Töövoog GitHubis
+
+Kirjeldus ja ühekordne seadistus: `docs/tooprotsess.md`. Lühidalt:
+
+1. Muudatuspäring tehakse issue'na (vorm „Muudatuspäring”, silt `claude`). See käivitab `.github/workflows/claude.yml`.
+2. Claude teeb muudatuse `claude/…` harus skilli `poe-muudatus` järgi ja avab PR-i.
+3. `ci.yml` käivitab testid ja `avaldamise-kontroll.yml` testib Verceli eelvaadet. Mõlemad postitavad PR-ile tõendite kommentaari.
+4. Inimene otsustab: kommentaar „@claude paranda: …” viib tagasi sammu 2 juurde, liitmise teeb inimene ise.
+5. Pärast liitmist avaldab Vercel `main`-i productionisse. `avaldamise-kontroll.yml` testib avalikku poodi ja avab ebaõnnestumisel issue sildiga `tootmine`.
+
+Claude ei liida PR-e ega avalda productionisse ka GitHubis. Production on Verceli automaatne samm pärast inimese tehtud liitmist.
