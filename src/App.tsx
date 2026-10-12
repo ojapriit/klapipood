@@ -73,6 +73,7 @@ export default function App() {
             totalCents={cart.totalCents}
             onSetQuantity={cart.setQuantity}
             onRemove={cart.removeItem}
+            onClear={cart.clear}
           />
         )}
       </main>

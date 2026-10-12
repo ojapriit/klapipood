@@ -8,9 +8,10 @@ interface CartProps {
   totalCents: number;
   onSetQuantity: (productId: string, quantity: number) => void;
   onRemove: (productId: string) => void;
+  onClear: () => void;
 }
 
-export function Cart({ headingRef, items, totalCents, onSetQuantity, onRemove }: CartProps) {
+export function Cart({ headingRef, items, totalCents, onSetQuantity, onRemove, onClear }: CartProps) {
   const listRef = useRef<HTMLUListElement>(null);
 
   // Rea eemaldamisel kaoks fookus koos nupuga – vii see järgmisele mõistlikule kohale.
@@ -23,11 +24,34 @@ export function Cart({ headingRef, items, totalCents, onSetQuantity, onRemove }:
     });
   };
 
+  // Tühjendamisel kaob nupp koos ridadega – vii fookus pealkirjale.
+  const handleClear = () => {
+    onClear();
+    requestAnimationFrame(() => headingRef.current?.focus());
+  };
+
   return (
     <section aria-labelledby="ostukorv-pealkiri">
-      <h1 id="ostukorv-pealkiri" ref={headingRef} tabIndex={-1}>
-        Ostukorv
-      </h1>
+      <div className="cart-heading">
+        <h1 id="ostukorv-pealkiri" ref={headingRef} tabIndex={-1}>
+          Ostukorv
+        </h1>
+        {items.length > 0 && (
+          <button type="button" className="btn btn-secondary clear-cart-button" onClick={handleClear}>
+            Tühjenda<span className="visually-hidden"> ostukorv</span>
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <path
+                d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        )}
+      </div>
 
       {items.length === 0 ? (
         <div className="empty-cart">

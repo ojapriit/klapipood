@@ -100,6 +100,84 @@ test('toote eemaldamine töötab ja tühja ostukorvi teade kuvatakse', async ({ 
   await expect(cartCount(page)).toHaveText('0');
 });
 
+test.describe('ostukorvi tühjendamine', () => {
+  const clearButton = (page: Page) => page.getByRole('button', { name: 'Tühjenda ostukorv' });
+
+  test('nupp on pealkirjaga samal real päise ostukorvi nupu all', async ({ page }) => {
+    await page.goto('/');
+    await addButton(page, 'Sadu Pods').click();
+    await cartLink(page).click();
+
+    const button = clearButton(page);
+    await expect(button).toBeVisible();
+    // Nähtav tekst on „Tühjenda”; „ostukorv” on ainult ekraanilugejale.
+    const visibleText = await button.evaluate((el) => {
+      const clone = el.cloneNode(true) as HTMLElement;
+      clone.querySelectorAll('.visually-hidden').forEach((n) => n.remove());
+      return clone.textContent?.trim();
+    });
+    expect(visibleText).toBe('Tühjenda');
+    await expect(button.locator('svg')).toBeVisible();
+
+    const heading = await page.getByRole('heading', { level: 1, name: 'Ostukorv' }).boundingBox();
+    const btn = (await button.boundingBox())!;
+    const headerCart = (await cartLink(page).boundingBox())!;
+    expect(btn.height).toBeGreaterThanOrEqual(44);
+    // Samal real: vertikaalsed keskpunktid kattuvad, pealkiri vasakul.
+    const mid = (b: { y: number; height: number }) => b.y + b.height / 2;
+    expect(Math.abs(mid(btn) - mid(heading!))).toBeLessThan(btn.height / 2);
+    expect(heading!.x + heading!.width).toBeLessThanOrEqual(btn.x);
+    // Päise ostukorvi nupu all: paremad servad joonduvad.
+    expect(btn.y).toBeGreaterThan(headerCart.y + headerCart.height);
+    expect(Math.abs(btn.x + btn.width - (headerCart.x + headerCart.width))).toBeLessThanOrEqual(1);
+
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
+    ).toBe(true);
+  });
+
+  test('tühjendamine eemaldab kõik read ja püsib värskendamisel', async ({ page }) => {
+    await page.goto('/');
+    await addButton(page, 'Sadu Pods').click();
+    await addButton(page, 'Sadu Pods').click();
+    await addButton(page, 'Jooks Sport').click();
+    await cartLink(page).click();
+    await expect(cartLines(page)).toHaveCount(2);
+
+    await clearButton(page).click();
+    await expect(cartLines(page)).toHaveCount(0);
+    await expect(page.getByText('Sinu ostukorv on tühi.')).toBeVisible();
+    await expect(cartCount(page)).toHaveText('0');
+    await expect(clearButton(page)).toHaveCount(0);
+    await expect(page.getByRole('heading', { level: 1, name: 'Ostukorv' })).toBeFocused();
+
+    await page.reload();
+    await expect(page.getByText('Sinu ostukorv on tühi.')).toBeVisible();
+    await expect(cartCount(page)).toHaveText('0');
+    expect(await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY)).toBe('[]');
+  });
+
+  test('tühjas ostukorvis nuppu ei kuvata', async ({ page }) => {
+    await page.goto('/#/ostukorv');
+    await expect(page.getByText('Sinu ostukorv on tühi.')).toBeVisible();
+    await expect(clearButton(page)).toHaveCount(0);
+  });
+
+  test('tühjendamine töötab klaviatuuriga', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'Klaviatuurivoog on mõeldud lauaarvutile');
+    await page.goto('/');
+    await addButton(page, 'Laine Bluetooth').click();
+    await cartLink(page).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Ostukorv' })).toBeFocused();
+
+    await page.keyboard.press('Tab');
+    await expect(clearButton(page)).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(cartLines(page)).toHaveCount(0);
+    await expect(page.getByRole('heading', { level: 1, name: 'Ostukorv' })).toBeFocused();
+  });
+});
+
 test('tühja ostukorvi teade kuvatakse otse ostukorvi avades', async ({ page }) => {
   await page.goto('/#/ostukorv');
   await expect(page.getByRole('heading', { level: 1, name: 'Ostukorv' })).toBeVisible();

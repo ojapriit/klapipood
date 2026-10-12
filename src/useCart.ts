@@ -52,6 +52,7 @@ export function useCart() {
     [],
   );
   const removeItem = useCallback((productId: string) => setLines((prev) => removeLine(prev, productId)), []);
+  const clear = useCallback(() => setLines([]), []);
 
   const items = useMemo(() => toItems(lines, productById), [lines]);
 
@@ -62,5 +63,6 @@ export function useCart() {
     addItem,
     setQuantity,
     removeItem,
+    clear,
   };
 }
