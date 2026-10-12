@@ -1,0 +1,35 @@
+# Sõltuvused
+node_modules
+
+# Ehitus ja vahemälu
+dist
+dist-ssr
+*.tsbuildinfo
+.vite
+coverage
+
+# Playwright
+test-results
+playwright-report
+blob-report
+playwright/.cache
+
+# Keskkonnamuutujad ja kohalikud failid
+.env
+.env.*
+!.env.example
+*.local
+.vercel
+
+# Logid
+logs
+*.log
+npm-debug.log*
+
+# Redaktorid ja OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+Thumbs.db
+*.swp
