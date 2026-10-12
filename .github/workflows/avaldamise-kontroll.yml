@@ -41,8 +41,28 @@ jobs:
       - name: Paigalda Playwrighti Chromium
         run: npx playwright install --with-deps chromium
 
+      # Kui aadress suunab Verceli sisselogimisele, ei jõua testid lehele ja ootaksid ajalõpuni.
+      # Kontrollime enne ja katkestame kohe, selge põhjusega.
+      - name: Kontrolli, kas aadress on ligipääsetav
+        id: ligipaas
+        continue-on-error: true
+        run: |
+          args=()
+          if [ -n "$VERCEL_AUTOMATION_BYPASS_SECRET" ]; then
+            args=(-H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET")
+          fi
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "${args[@]}" "$BASE_URL" || echo 000)
+          echo "$BASE_URL vastas HTTP $code"
+          if [ "$code" != "200" ]; then
+            msg="$BASE_URL vastas HTTP $code. Eelvaade on tõenäoliselt Verceli sisselogimise taga: lülita Vercelis Settings → Deployment Protection eelvaadete jaoks välja või lisa GitHubi saladus VERCEL_AUTOMATION_BYPASS_SECRET."
+            echo "::error::$msg"
+            echo "LIGIPAAS_MARKUS=$msg" >> "$GITHUB_ENV"
+            exit 1
+          fi
+
       - name: Brauseritestid avaldatud versiooni vastu
         id: e2e
+        if: steps.ligipaas.outcome == 'success'
         continue-on-error: true
         run: |
           echo "Testin aadressi: $BASE_URL (keskkond: ${{ github.event.deployment.environment }})"
@@ -51,6 +71,7 @@ jobs:
       - name: Koosta tõendid
         if: always()
         env:
+          SAMM_LIGIPAAS: ${{ steps.ligipaas.outcome }}
           SAMM_E2E: ${{ steps.e2e.outcome }}
           TESTITUD_URL: ${{ env.BASE_URL }}
           TESTITUD_SHA: ${{ github.event.deployment.sha }}
@@ -61,7 +82,7 @@ jobs:
           cat reports/toendid.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Lae Playwrighti raport üles
-        if: always()
+        if: always() && steps.e2e.outcome != 'skipped'
         uses: actions/upload-artifact@v4
         with:
           name: playwright-raport
