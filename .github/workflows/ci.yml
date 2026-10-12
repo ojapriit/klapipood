@@ -1,3 +1,7 @@
+# Automaatsed testid iga PR-i ja main-i jaoks: lint, tüübid, ühiktestid, production-build ja
+# Playwrighti brauseritestid. PR-i puhul postitatakse tulemused PR-ile tõendite kommentaarina.
+# Artefaktid: playwright-raport (alati), ebaonnestunud-testid (ekraanipildid, trace; ainult vea korral),
+# toendid (JSON-aruanded ja kommentaari tekst).
 name: CI
 
 on:
@@ -29,27 +33,98 @@ jobs:
       - name: Paigalda Playwrighti Chromium
         run: npx playwright install --with-deps chromium
 
+      # Sammud jätkavad vea korral, et tõendites oleks iga kontrolli tulemus.
+      # Viimane samm „Kontrolli tulemust” kukutab töö, kui mõni neist ebaõnnestus.
       - name: Lint
+        id: lint
+        continue-on-error: true
         run: npm run lint
 
       - name: Tüübikontroll
+        id: typecheck
+        continue-on-error: true
         run: npm run typecheck
 
       - name: Ühiktestid
-        run: npm run test
+        id: unit
+        continue-on-error: true
+        run: npm run test -- --reporter=default --reporter=json --outputFile.json=reports/unit.json
 
       - name: Tootmisversiooni ehitus
+        id: build
+        continue-on-error: true
         run: npm run build
 
       - name: Brauseritestid
+        id: e2e
+        continue-on-error: true
         run: npm run test:e2e
 
-      - name: Lae Playwrighti aruanne üles
-        if: failure()
+      - name: Koosta tõendid
+        if: always()
+        env:
+          SAMM_LINT: ${{ steps.lint.outcome }}
+          SAMM_TYPECHECK: ${{ steps.typecheck.outcome }}
+          SAMM_UNIT: ${{ steps.unit.outcome }}
+          SAMM_BUILD: ${{ steps.build.outcome }}
+          SAMM_E2E: ${{ steps.e2e.outcome }}
+          TESTITUD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          mkdir -p reports
+          node .github/scripts/toendid.mjs > reports/toendid.md
+          cat reports/toendid.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Lae Playwrighti raport üles
+        if: always() && steps.e2e.outcome != 'skipped'
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
-          path: |
-            playwright-report
-            test-results
-          retention-days: 7
+          name: playwright-raport
+          path: playwright-report
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Lae ebaõnnestunud testide ekraanipildid ja trace'id üles
+        if: always() && steps.e2e.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ebaonnestunud-testid
+          path: test-results
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Lae tõendid üles
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: toendid
+          path: reports
+          retention-days: 14
+
+      - name: Kontrolli tulemust
+        if: always()
+        run: |
+          for o in "${{ steps.lint.outcome }}" "${{ steps.typecheck.outcome }}" "${{ steps.unit.outcome }}" \
+                   "${{ steps.build.outcome }}" "${{ steps.e2e.outcome }}"; do
+            if [ "$o" != "success" ]; then echo "Vähemalt üks kontroll ei läinud läbi (vt tõendid)."; exit 1; fi
+          done
+
+  toendid:
+    # Eraldi töö, et testitöö ise jääks ainult lugemisõigusega.
+    if: always() && github.event_name == 'pull_request'
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write
+    steps:
+      # Ühe kaustaga artefakt salvestatakse ilma kaustanimeta, seega laadi see tagasi kausta reports.
+      - uses: actions/download-artifact@v4
+        with:
+          name: toendid
+          path: reports
+
+      - name: Postita tõendid PR-ile
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: toendid-ci
+          path: reports/toendid.md

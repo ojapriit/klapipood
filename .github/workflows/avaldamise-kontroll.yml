@@ -1,0 +1,116 @@
+# Kui Vercel on deployment'i lõpetanud, käivitatakse brauseritestid
+# päris avaldatud versiooni vastu.
+#  - Eelvaade (Preview): tulemus postitatakse PR-ile tõendite kommentaarina.
+#  - Production: testitakse avalikku poodi; ebaõnnestumisel avatakse issue sildiga `tootmine`.
+# Verceli GitHubi integratsioon loob deployment'id ja nende staatused ise; see töövoog ei avalda midagi.
+name: Avaldamise kontroll
+
+on:
+  deployment_status:
+
+permissions:
+  contents: read
+
+jobs:
+  kontroll:
+    if: github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    env:
+      ON_PRODUCTION: ${{ startsWith(github.event.deployment.environment, 'Production') }}
+      # Productionis testitakse avalikku aadressi (repo muutuja POE_AVALIK_URL), kui see on määratud.
+      BASE_URL: ${{ startsWith(github.event.deployment.environment, 'Production') && vars.POE_AVALIK_URL || github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Testid samast versioonist, mis avaldati.
+          ref: ${{ github.event.deployment.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Paigalda Playwrighti Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Brauseritestid avaldatud versiooni vastu
+        id: e2e
+        continue-on-error: true
+        run: |
+          echo "Testin aadressi: $BASE_URL (keskkond: ${{ github.event.deployment.environment }})"
+          npx playwright test
+
+      - name: Koosta tõendid
+        if: always()
+        env:
+          SAMM_E2E: ${{ steps.e2e.outcome }}
+          TESTITUD_URL: ${{ env.BASE_URL }}
+          TESTITUD_SHA: ${{ github.event.deployment.sha }}
+          TOENDID_PEALKIRI: ${{ env.ON_PRODUCTION == 'true' && 'Avaliku poe kontroll' || 'Verceli eelvaate kontroll' }}
+        run: |
+          mkdir -p reports
+          node .github/scripts/toendid.mjs > reports/toendid.md
+          cat reports/toendid.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Lae Playwrighti raport üles
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-raport
+          path: playwright-report
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Lae ebaõnnestunud testide ekraanipildid ja trace'id üles
+        if: always() && steps.e2e.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ebaonnestunud-testid
+          path: test-results
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Leia eelvaatele vastav PR
+        id: pr
+        if: always() && env.ON_PRODUCTION != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          nr=$(gh api "repos/${{ github.repository }}/commits/${{ github.event.deployment.sha }}/pulls" --jq '.[0].number // empty')
+          echo "number=$nr" >> "$GITHUB_OUTPUT"
+
+      - name: Postita eelvaate tõendid PR-ile
+        if: always() && steps.pr.outputs.number != ''
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: toendid-eelvaade
+          number: ${{ steps.pr.outputs.number }}
+          path: reports/toendid.md
+
+      - name: Ava issue, kui avalik pood ei läbinud kontrolli
+        if: always() && env.ON_PRODUCTION == 'true' && steps.e2e.outcome != 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "Pärast productionisse avaldamist ei läbinud avalik pood brauseriteste."
+            echo
+            cat reports/toendid.md
+          } > reports/issue.md
+          gh issue create --repo "${{ github.repository }}" \
+            --title "Avaliku poe kontroll ebaõnnestus (${GITHUB_SHA::7})" \
+            --label tootmine --body-file reports/issue.md \
+            || gh issue create --repo "${{ github.repository }}" \
+                 --title "Avaliku poe kontroll ebaõnnestus (${GITHUB_SHA::7})" --body-file reports/issue.md
+
+      - name: Kontrolli tulemust
+        if: always()
+        run: test "${{ steps.e2e.outcome }}" = "success"

@@ -14,6 +14,7 @@ npm run test        # Vitest ühiktestid (src/**/*.test.ts)
 npm run build       # tsc + vite build -> dist/
 npm run test:e2e    # Playwright: ehitab ja käivitab preview pordil 4173; projektid "desktop" ja "mobiil" (Pixel 7)
 npm run check       # kõik ülaltoodud järjest
+BASE_URL=https://… npx playwright test   # brauseritestid avaldatud versiooni vastu (eelvaade/avalik pood)
 ```
 
 Esimesel korral: `npx playwright install chromium`.
@@ -45,3 +46,15 @@ Esimesel korral: `npx playwright install chromium`.
 - Commit'i autor selles repos on GitHubi `noreply`-aadress; ära lisa isiklikke e-posti aadresse ega saladusi.
 
 Tavaline poe muudatus käib skilli `poe-muudatus` järgi (`.claude/skills/poe-muudatus/SKILL.md`).
+
+## Töövoog
+
+Kirjeldus ja ühekordne seadistus: `docs/tooprotsess.md`. Lühidalt:
+
+1. Kasutaja annab muudatuspäringu **kohalikus Claude Code'is**.
+2. Claude teeb muudatuse eraldi harus skilli `poe-muudatus` järgi, käivitab testid ja avab PR-i eestikeelse kirjeldusega (vorm: `.github/pull_request_template.md`).
+3. GitHub Actions (`ci.yml`) käivitab iga PR-i puhul lint'i, tüübikontrolli, ühiktestid, build'i ja Playwrighti testid. Playwrighti raport ja ebaõnnestunud testide ekraanipildid salvestatakse artefaktidena. Kui Vercel on ühendatud, testib `avaldamise-kontroll.yml` ka eelvaadet.
+4. Kasutaja otsustab: parandus käib samas harus, liitmise teeb kasutaja ise.
+5. Pärast liitmist avaldab Vercel `main`-i productionisse ja `avaldamise-kontroll.yml` testib avalikku poodi.
+
+GitHubis ei ole Claude'i API-t kasutavat automaatikat (nt `anthropics/claude-code-action`) ja seda ei lisata.

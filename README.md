@@ -64,7 +64,11 @@ Projekt on tavaline Vite staatiline rakendus, Vercel tuvastab seadistuse automaa
 - Build Command: `npm run build`
 - Output Directory: `dist`
 
-Ostukorvi vaade kasutab aadressi `#/ostukorv`, seega serveripoolseid ümbersuunamisi pole vaja.
+Ostukorvi vaade kasutab aadressi `#/ostukorv`, seega serveripoolseid ümbersuunamisi pole vaja. Seadistus on ka failis `vercel.json`.
+
+## Töövoog
+
+Muudatuspäring kohalikus Claude Code'is → Claude teeb muudatuse eraldi harus → PR, GitHub Actionsi testid ja Verceli eelvaade → sinu otsus (paranda / merge) → production → avaliku poe kontroll. Kirjeldus ja ühekordne seadistus on failis [`docs/tooprotsess.md`](docs/tooprotsess.md).
 
 ## Struktuur
 
