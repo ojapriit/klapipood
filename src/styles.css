@@ -305,6 +305,31 @@ main {
   font-weight: 600;
 }
 
+.in-cart-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.in-cart-row .in-cart-note {
+  margin: 0;
+}
+
+.in-cart-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* .qty-btn on defineeritud allpool ja eemaldab äärise – seepärast topeltklass. */
+.qty-btn.in-cart-decrease {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
 /* Ostukorv */
 
 .cart-heading {

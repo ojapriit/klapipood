@@ -46,6 +46,31 @@ export default function App() {
     setAnnouncement(`${name} lisati ostukorvi. Ostukorvis kokku ${count} ${count === 1 ? 'toode' : 'toodet'}.`);
   };
 
+  const quantityOf = (productId: string) => cart.items.find((i) => i.product.id === productId)?.quantity ?? 0;
+  const countText = (count: number) => `Ostukorvis kokku ${count} ${count === 1 ? 'toode' : 'toodet'}.`;
+
+  // Avalehel koguse vähendamine; kogus 1 → 0 eemaldab toote (vt setLineQuantity).
+  const handleDecrease = (productId: string) => {
+    const quantity = quantityOf(productId);
+    if (quantity === 0) return;
+    cart.setQuantity(productId, quantity - 1);
+    const name = productById.get(productId)?.name ?? 'Toode';
+    const count = cart.totalCount - 1;
+    setAnnouncement(
+      quantity === 1
+        ? `${name} eemaldati ostukorvist. ${countText(count)}`
+        : `${name} kogus vähenes, ostukorvis ${quantity - 1} tk. ${countText(count)}`,
+    );
+  };
+
+  const handleRemove = (productId: string) => {
+    const quantity = quantityOf(productId);
+    if (quantity === 0) return;
+    cart.removeItem(productId);
+    const name = productById.get(productId)?.name ?? 'Toode';
+    setAnnouncement(`${name} eemaldati ostukorvist. ${countText(cart.totalCount - quantity)}`);
+  };
+
   return (
     <>
       <a
@@ -65,7 +90,13 @@ export default function App() {
       <Header cartCount={cart.totalCount} cartHref={CART_HASH} isCartView={view === 'ostukorv'} />
       <main id="sisu" className="container" tabIndex={-1}>
         {view === 'pood' ? (
-          <ProductList headingRef={headingRef} onAdd={handleAdd} cartQuantities={cart.items} />
+          <ProductList
+            headingRef={headingRef}
+            onAdd={handleAdd}
+            onDecrease={handleDecrease}
+            onRemove={handleRemove}
+            cartQuantities={cart.items}
+          />
         ) : (
           <Cart
             headingRef={headingRef}
