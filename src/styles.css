@@ -242,6 +242,51 @@ main {
   color: var(--muted);
 }
 
+.product-search {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 420px;
+  margin-bottom: 20px;
+}
+
+.product-search label {
+  font-weight: 600;
+}
+
+.product-search input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--muted);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  /* Vähemalt 16 px, et iOS ei suumiks välja fokuseerimisel sisse. */
+  font: inherit;
+  font-size: 1rem;
+}
+
+.no-results {
+  padding: 32px 20px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+.no-results p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.no-results .no-results-title {
+  margin-bottom: 6px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
 .product-grid {
   list-style: none;
   margin: 0;

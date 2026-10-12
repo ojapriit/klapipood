@@ -404,3 +404,123 @@ test('põhivoog töötab mobiili mõõtudega', async ({ page, isMobile }) => {
   await page.getByRole('button', { name: 'Eemalda toode Vikerkaar Junior' }).tap();
   await expect(page.getByText('Sinu ostukorv on tühi.')).toBeVisible();
 });
+
+test.describe('toodete otsing', () => {
+  const search = (page: Page) => page.getByRole('searchbox', { name: 'Otsi toodet' });
+  const cards = (page: Page) => page.locator('.product-card');
+  const cardNames = (page: Page) => page.locator('.product-card h2');
+  const card = (page: Page, name: string) =>
+    cards(page).filter({ has: page.getByRole('heading', { name, exact: true }) });
+
+  test('otsing nime järgi ei erista suuri ja väikseid tähti', async ({ page }) => {
+    await page.goto('/');
+    await expect(search(page)).toBeVisible();
+    for (const query of ['sadu', 'SADU', 'sAdU']) {
+      await search(page).fill(query);
+      await expect(cardNames(page)).toHaveText(['Sadu Pods']);
+    }
+    await search(page).fill('PÕHJALA');
+    await expect(cardNames(page)).toHaveText(['Põhjala ANC']);
+    await search(page).fill('pod');
+    await expect(cardNames(page)).toHaveText(['Sadu Pods']);
+  });
+
+  test('tühi otsing näitab kõiki tooteid', async ({ page }) => {
+    await page.goto('/');
+    await expect(search(page)).toHaveValue('');
+    await expect(cards(page)).toHaveCount(6);
+    await search(page).fill('laine');
+    await expect(cards(page)).toHaveCount(1);
+    await search(page).fill('   ');
+    await expect(cards(page)).toHaveCount(6);
+    await search(page).fill('laine');
+    await search(page).fill('');
+    await expect(cards(page)).toHaveCount(6);
+    await expect(page.getByText('Tooteid ei leitud')).toHaveCount(0);
+  });
+
+  test('vastete puudumisel kuvatakse „Tooteid ei leitud”', async ({ page }) => {
+    await page.goto('/');
+    await search(page).fill('xyz');
+    await expect(page.getByText('Tooteid ei leitud', { exact: true })).toBeVisible();
+    await expect(cards(page)).toHaveCount(0);
+    await expect(page.getByRole('list')).toHaveCount(0);
+    // Ekraanilugeja saab sama teate.
+    await expect(page.locator('[aria-live="polite"]').filter({ hasText: 'Tooteid ei leitud.' })).toHaveCount(1);
+    await search(page).fill('jooks');
+    await expect(page.getByText('Tooteid ei leitud')).toHaveCount(0);
+    await expect(cardNames(page)).toHaveText(['Jooks Sport']);
+    await expect(page.locator('[aria-live="polite"]').filter({ hasText: 'Leitud 1 toode.' })).toHaveCount(1);
+  });
+
+  test('ostukorv töötab otsingu ajal ja pärast seda', async ({ page }) => {
+    await page.goto('/');
+    await search(page).fill('stuudio');
+    await addButton(page, 'Stuudio 7').click();
+    await addButton(page, 'Stuudio 7').click();
+    await expect(cartCount(page)).toHaveText('2');
+    await expect(card(page, 'Stuudio 7')).toContainText('Ostukorvis: 2 tk');
+    await page.getByRole('button', { name: 'Vähenda kogust: Stuudio 7' }).click();
+    await expect(cartCount(page)).toHaveText('1');
+
+    await search(page).fill('sadu');
+    await addButton(page, 'Sadu Pods').click();
+    await page.getByRole('button', { name: 'Eemalda ostukorvist: Sadu Pods' }).click();
+    await expect(addButton(page, 'Sadu Pods')).toBeFocused();
+    await expect(cartCount(page)).toHaveText('1');
+
+    await search(page).fill('');
+    await expect(cards(page)).toHaveCount(6);
+    await expect(card(page, 'Stuudio 7')).toContainText('Ostukorvis: 1 tk');
+    await expect(card(page, 'Sadu Pods')).not.toContainText('Ostukorvis');
+
+    await cartLink(page).click();
+    await expect(cartLines(page)).toHaveCount(1);
+    await expect(cartLines(page)).toContainText('Stuudio 7');
+    await expect(total(page)).toHaveText(euro('145,00'));
+  });
+
+  test('otsinguväli töötab klaviatuuriga', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'Klaviatuurivoog on mõeldud lauaarvutile');
+    await page.goto('/');
+    await page.getByRole('heading', { level: 1 }).focus();
+    await page.keyboard.press('Tab');
+    await expect(search(page)).toBeFocused();
+    await page.keyboard.type('Vikerkaar');
+    await expect(cardNames(page)).toHaveText(['Vikerkaar Junior']);
+    // Tab viib otse leitud toote lisamisnupule.
+    await page.keyboard.press('Tab');
+    await expect(addButton(page, 'Vikerkaar Junior')).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(cartCount(page)).toHaveText('1');
+    // Escape tühjendab otsinguvälja (brauseri vaikekäitumine type="search" puhul).
+    await search(page).focus();
+    await page.keyboard.press('Escape');
+    await expect(cards(page)).toHaveCount(6);
+  });
+
+  test('otsing töötab telefonis', async ({ page, isMobile }) => {
+    test.skip(!isMobile, 'Ainult mobiiliprojektis');
+    await page.goto('/');
+    const field = search(page);
+    await expect(field).toBeInViewport();
+    const box = (await field.boundingBox())!;
+    expect(box.height).toBeGreaterThanOrEqual(44);
+    expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+    // Vähemalt 16 px, muidu iOS suumib välja fokuseerimisel.
+    expect(await field.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
+
+    await field.tap();
+    await page.keyboard.type('joo');
+    await expect(cardNames(page)).toHaveText(['Jooks Sport']);
+    await addButton(page, 'Jooks Sport').tap();
+    await expect(cartCount(page)).toHaveText('1');
+
+    const noHorizontalScroll = () =>
+      page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
+    expect(await noHorizontalScroll()).toBe(true);
+    await field.fill('qqq');
+    await expect(page.getByText('Tooteid ei leitud', { exact: true })).toBeVisible();
+    expect(await noHorizontalScroll()).toBe(true);
+  });
+});
