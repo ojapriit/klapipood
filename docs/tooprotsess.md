@@ -2,9 +2,9 @@
 
 ```mermaid
 flowchart TD
-    A[Sinu muudatuspäring GitHubis] --> B[Claude teeb muudatuse eraldi harus]
+    A[Muudatuspäring kohalikus Claude Code'is] --> B[Claude teeb muudatuse eraldi harus]
     B --> C[Pull request]
-    C --> D[Automaatsed testid]
+    C --> D[Automaatsed testid GitHub Actionsis]
     C --> E[Verceli eelvaade]
     D --> F[Ülevaade koos tõenditega]
     E --> F
@@ -16,37 +16,55 @@ flowchart TD
 
 | Samm | Mis seda teeb | Kus |
 |---|---|---|
-| **A** Muudatuspäring | Issue vormiga „Muudatuspäring”. Vorm lisab sildid `muudatus` ja `claude`. | `.github/ISSUE_TEMPLATE/muudatus.yml` |
-| **B** Muudatus eraldi harus | Silt `claude` käivitab Claude'i, mis töötab harus `claude/…` skilli `poe-muudatus` järgi: vastuvõtutingimused, kood, testid ja kõik kontrollid. | `.github/workflows/claude.yml`, `.claude/skills/poe-muudatus/SKILL.md` |
-| **C** Pull request | Claude avab PR-i viitega `Closes #<issue>`. | — |
-| **D** Automaatsed testid | Lint, tüübikontroll, ühiktestid, build ja brauseritestid (desktop + Pixel 7). Tulemus tuleb PR-ile kommentaarina „Automaatsed testid”. | `.github/workflows/ci.yml`, `.github/scripts/toendid.mjs` |
-| **E** Verceli eelvaade | Vercel ehitab igast PR-ist eelvaate. Kui see valmib, käivituvad brauseritestid **päris eelvaate aadressi vastu**. Tulemus tuleb PR-ile kommentaarina „Verceli eelvaate kontroll”. | Verceli GitHubi integratsioon, `.github/workflows/avaldamise-kontroll.yml` |
-| **F** Ülevaade koos tõenditega | PR-i kirjelduses on Claude'i eestikeelne ülevaade (vastuvõtutingimused, enne/pärast, tulemused). Selle all on kaks automaatset tõendite kommentaari ja eelvaate link. | PR |
-| **G** Sinu otsus | **Paranda:** kirjuta PR-ile kommentaar `@claude paranda: <mida>`. Claude parandab samas harus ja kõik kontrollid käivad uuesti. **Merge:** liidad ise. Claude ei liida kunagi. | GitHub |
+| **A** Muudatuspäring | Kirjuta soov kohalikus Claude Code'is, nt `/poe-muudatus lisa ostukorvi tühjendamise nupp`. | — |
+| **B** Muudatus eraldi harus | Claude töötab skilli `poe-muudatus` järgi. Ta paneb kirja vastuvõtutingimused, teeb muudatuse uues harus, lisab testid ja käivitab kõik kontrollid kohalikult. | `.claude/skills/poe-muudatus/SKILL.md`, `CLAUDE.md` |
+| **C** Pull request | Claude avab PR-i eestikeelse kirjeldusega: mida muudeti, enne/pärast, tegelikud testitulemused ja teadaolevad piirangud. | `.github/pull_request_template.md` |
+| **D** Automaatsed testid | GitHub Actions (`ubuntu-latest`) käivitab iga PR-i puhul lint'i, tüübikontrolli, ühiktestid, production-build'i ja Playwrighti testid (desktop + Pixel 7). Tulemus tuleb PR-ile kommentaarina „Automaatsed testid”. | `.github/workflows/ci.yml`, `.github/scripts/toendid.mjs` |
+| **E** Verceli eelvaade | Vercel ehitab igast PR-ist eelvaate. Kui see valmib, käivituvad brauseritestid **päris eelvaate aadressi vastu** ja tulemus tuleb PR-ile kommentaarina „Verceli eelvaate kontroll”. | Verceli GitHubi integratsioon, `.github/workflows/avaldamise-kontroll.yml` |
+| **F** Ülevaade koos tõenditega | PR-i kirjeldus, tõendite kommentaarid ja artefaktid (vt allpool). Claude annab sama ülevaate ka terminalis. | PR |
+| **G** Sinu otsus | **Paranda:** ütle kohalikus Claude Code'is, mida muuta. Claude parandab samas harus ja kontrollid käivad uuesti. **Merge:** liidad ise GitHubis. | — |
 | **H** Production | Vercel ehitab `main`-i ja avaldab selle ise. | Vercel (production-haru `main`) |
 | **I** Avaliku poe kontroll | Kui production-deployment on valmis, käivituvad brauseritestid avaliku aadressi vastu. Ebaõnnestumisel avatakse issue sildiga `tootmine`. | `.github/workflows/avaldamise-kontroll.yml` |
 
+GitHubis ei ole Claude'i API-t kasutavat automaatikat. Claude töötab ainult sinu masinas, GitHub ainult testib.
+
+## Artefaktid
+
+Leiad need PR-i kontrolli juurest: Details → käivituse leht → Artifacts. Käsurealt: `gh run download <run-id> -n <nimi>`.
+
+| Artefakt | Millal | Sisu |
+|---|---|---|
+| `playwright-raport` | alati | Playwrighti HTML-raport. Ava `index.html` või käivita `npx playwright show-report <kaust>`. |
+| `ebaonnestunud-testid` | kui mõni brauseritest ebaõnnestus | ekraanipildid (`test-failed-*.png`), `error-context.md` ja trace'id (`npx playwright show-trace trace.zip`) |
+| `toendid` | alati | JSON-aruanded ja tõendite kommentaari tekst |
+
+Artefakte hoitakse 14 päeva.
+
 ## Ühekordne seadistus
 
-Need sammud muudavad repo, Verceli või saladuste seadeid, seega teeb need repo omanik.
+Need sammud muudavad GitHubi või Verceli seadeid, seega teeb need repo omanik.
 
-1. **Claude GitHubis:** käivita terminalis Claude Code'is `/install-github-app`. See paigaldab Claude'i GitHubi rakenduse ja lisab repole saladuse `CLAUDE_CODE_OAUTH_TOKEN`. Teine võimalus on API-võti: paigalda <https://github.com/apps/claude> ja lisa saladus `ANTHROPIC_API_KEY`.
-   Rakendus on vajalik, sest Claude'i tehtud pushid peavad käivitama CI. Tavalise `GITHUB_TOKEN`-iga tehtud pushid seda ei tee.
-2. **Vercel:** ava <https://vercel.com/new>, impordi repo `ojapriit/klapipood` (Framework: Vite) ja vali production-haruks `main`. Pärast seda teeb Vercel igale PR-ile eelvaate ja avaldab `main`-i productionisse.
-3. **Eelvaadete kaitse:** kui Verceli eelvaated on kaitstud (Settings → Deployment Protection), loo samas „Protection Bypass for Automation” saladus. Lisa see GitHubi saladusena nimega `VERCEL_AUTOMATION_BYPASS_SECRET`.
-4. **Avalik aadress:** lisa repo muutuja (Settings → Secrets and variables → Actions → Variables) `POE_AVALIK_URL`, nt `https://klapipood.vercel.app`. Selle puudumisel testitakse production-deployment'i enda aadressi.
-5. **Sildid:** `claude`, `muudatus` ja `tootmine`.
-6. **`main`-i kaitse** (Settings → Branches → Add rule `main`):
-   - nõua pull requesti;
-   - nõua staatuskontrolli `check` (CI) ja soovi korral ka Verceli kontrolli;
-   - keela otse pushimine.
+### GitHub
 
-   See on oluline kaitse: Claude'i töövool on kirjutusõigus, nii et ainult tööriistade keeld ei ole piisav.
+1. **`main`-i kaitse:** Settings → Branches → Add branch ruleset (või „Add classic branch protection rule”) harule `main`:
+   - Require a pull request before merging;
+   - Require status checks to pass → lisa `check` (CI). Kui Vercel on ühendatud, soovi korral ka `Vercel`;
+   - Block force pushes. Otse pushimine on keelatud, sest nõutud on PR.
+2. **Silt `tootmine`** (Issues → Labels). Sellega märgitakse avaliku poe kontrolli ebaõnnestumised. Kui silti pole, luuakse issue ilma sildita.
+3. **Repo muutuja `POE_AVALIK_URL`** (Settings → Secrets and variables → Actions → Variables), nt `https://klapipood.vercel.app`. Selle puudumisel testitakse production-deployment'i enda `*.vercel.app` aadressi.
+4. **Saladus `VERCEL_AUTOMATION_BYPASS_SECRET`**, ainult siis, kui Verceli eelvaated on kaitstud (vt Verceli punkt 3).
 
-## Kasutamine
+### Vercel
 
-- **Uus muudatus:** Issues → New issue → „Muudatuspäring”.
-- **Täpsustus või parandus:** kirjuta issue'sse või PR-i kommentaar `@claude …`.
-- **Kohalik eelvaate või avaliku poe test:** `BASE_URL=https://… npx playwright test`.
+1. Ava <https://vercel.com/new>, impordi GitHubi repo `ojapriit/klapipood` ja anna Vercelile ligipääs ainult sellele repole.
+2. Kontrolli seadistust. Framework Preset: Vite. Build, install ja väljundkaust tulevad failist `vercel.json` (`npm run build`, `npm ci`, `dist`). Production Branch: `main` (Settings → Git).
+3. **Eelvaadete kaitse** (Settings → Deployment Protection). Vaikimisi on eelvaated kaitstud Verceli sisselogimisega. Siis loo „Protection Bypass for Automation” saladus ja lisa see GitHubi saladusena `VERCEL_AUTOMATION_BYPASS_SECRET`, et brauseritestid eelvaatele ligi pääseksid. Teine võimalus on eelvaadete kaitse välja lülitada, sest pood on demo ja avalik.
+4. Soovi korral lisa oma domeen (Settings → Domains) ja pane see GitHubi muutujasse `POE_AVALIK_URL`.
 
-Claude'i saab käivitada ainult kasutaja, kellel on repos kirjutusõigus. Repo on avalik, aga võõrad kasutajad Claude'i käivitada ei saa.
+Pärast seda teeb Vercel igale PR-ile eelvaate ning avaldab `main`-i pärast liitmist productionisse. Productionisse avaldamine käib ainult `main`-i kaudu ehk pärast sinu liitmist.
+
+## Kohalik testimine avaldatud versiooni vastu
+
+```bash
+BASE_URL=https://klapipood.vercel.app npx playwright test
+```

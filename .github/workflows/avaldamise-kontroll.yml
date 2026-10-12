@@ -1,4 +1,4 @@
-# Töövoo sammud E ja I: kui Vercel on deployment'i lõpetanud, käivitatakse brauseritestid
+# Kui Vercel on deployment'i lõpetanud, käivitatakse brauseritestid
 # päris avaldatud versiooni vastu.
 #  - Eelvaade (Preview): tulemus postitatakse PR-ile tõendite kommentaarina.
 #  - Production: testitakse avalikku poodi; ebaõnnestumisel avatakse issue sildiga `tootmine`.
@@ -60,15 +60,22 @@ jobs:
           node .github/scripts/toendid.mjs > reports/toendid.md
           cat reports/toendid.md >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Lae aruanded üles
+      - name: Lae Playwrighti raport üles
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: avaldamise-kontroll
-          path: |
-            reports
-            playwright-report
-            test-results
+          name: playwright-raport
+          path: playwright-report
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Lae ebaõnnestunud testide ekraanipildid ja trace'id üles
+        if: always() && steps.e2e.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ebaonnestunud-testid
+          path: test-results
+          if-no-files-found: warn
           retention-days: 14
 
       - name: Leia eelvaatele vastav PR

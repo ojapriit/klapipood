@@ -13,11 +13,21 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  // CI-s kirjutatakse ka JSON-aruanne, millest .github/scripts/toendid.mjs koostab PR-i tõendid.
-  reporter: process.env.CI ? [['github'], ['list'], ['json', { outputFile: 'reports/e2e.json' }]] : 'list',
+  // CI-s tehakse ka HTML-raport (laetakse üles artefaktina) ja JSON-aruanne,
+  // millest .github/scripts/toendid.mjs koostab PR-i tõendid.
+  reporter: process.env.CI
+    ? [
+        ['github'],
+        ['list'],
+        ['html', { open: 'never', outputFolder: 'playwright-report' }],
+        ['json', { outputFile: 'reports/e2e.json' }],
+      ]
+    : 'list',
   use: {
     baseURL: externalUrl ?? `http://localhost:${PORT}`,
     trace: 'retain-on-failure',
+    // Ebaõnnestunud testist jääb kaustas test-results ekraanipilt (ja HTML-raportis manusena).
+    screenshot: 'only-on-failure',
     ...(vercelBypass && {
       extraHTTPHeaders: {
         'x-vercel-protection-bypass': vercelBypass,

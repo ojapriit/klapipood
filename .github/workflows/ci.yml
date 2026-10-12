@@ -1,4 +1,7 @@
-# Töövoo samm D: automaatsed testid. PR-i puhul postitab tulemused PR-ile tõendite kommentaarina.
+# Automaatsed testid iga PR-i ja main-i jaoks: lint, tüübid, ühiktestid, production-build ja
+# Playwrighti brauseritestid. PR-i puhul postitatakse tulemused PR-ile tõendite kommentaarina.
+# Artefaktid: playwright-raport (alati), ebaonnestunud-testid (ekraanipildid, trace; ainult vea korral),
+# toendid (JSON-aruanded ja kommentaari tekst).
 name: CI
 
 on:
@@ -71,15 +74,30 @@ jobs:
           node .github/scripts/toendid.mjs > reports/toendid.md
           cat reports/toendid.md >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Lae tõendid ja aruanded üles
+      - name: Lae Playwrighti raport üles
+        if: always() && steps.e2e.outcome != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-raport
+          path: playwright-report
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Lae ebaõnnestunud testide ekraanipildid ja trace'id üles
+        if: always() && steps.e2e.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ebaonnestunud-testid
+          path: test-results
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Lae tõendid üles
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: toendid
-          path: |
-            reports
-            playwright-report
-            test-results
+          path: reports
           retention-days: 14
 
       - name: Kontrolli tulemust

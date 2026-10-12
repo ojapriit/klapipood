@@ -68,7 +68,7 @@ Ostukorvi vaade kasutab aadressi `#/ostukorv`, seega serveripoolseid ümbersuuna
 
 ## Töövoog
 
-Muudatused käivad GitHubis: muudatuspäring (issue) → Claude teeb muudatuse harus → PR koos testide ja Verceli eelvaatega → sinu otsus (paranda / merge) → production → avaliku poe kontroll. Kirjeldus ja ühekordne seadistus on failis [`docs/tooprotsess.md`](docs/tooprotsess.md).
+Muudatuspäring kohalikus Claude Code'is → Claude teeb muudatuse eraldi harus → PR, GitHub Actionsi testid ja Verceli eelvaade → sinu otsus (paranda / merge) → production → avaliku poe kontroll. Kirjeldus ja ühekordne seadistus on failis [`docs/tooprotsess.md`](docs/tooprotsess.md).
 
 ## Struktuur
 

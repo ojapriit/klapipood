@@ -47,14 +47,14 @@ Esimesel korral: `npx playwright install chromium`.
 
 Tavaline poe muudatus käib skilli `poe-muudatus` järgi (`.claude/skills/poe-muudatus/SKILL.md`).
 
-## Töövoog GitHubis
+## Töövoog
 
 Kirjeldus ja ühekordne seadistus: `docs/tooprotsess.md`. Lühidalt:
 
-1. Muudatuspäring tehakse issue'na (vorm „Muudatuspäring”, silt `claude`). See käivitab `.github/workflows/claude.yml`.
-2. Claude teeb muudatuse `claude/…` harus skilli `poe-muudatus` järgi ja avab PR-i.
-3. `ci.yml` käivitab testid ja `avaldamise-kontroll.yml` testib Verceli eelvaadet. Mõlemad postitavad PR-ile tõendite kommentaari.
-4. Inimene otsustab: kommentaar „@claude paranda: …” viib tagasi sammu 2 juurde, liitmise teeb inimene ise.
-5. Pärast liitmist avaldab Vercel `main`-i productionisse. `avaldamise-kontroll.yml` testib avalikku poodi ja avab ebaõnnestumisel issue sildiga `tootmine`.
+1. Kasutaja annab muudatuspäringu **kohalikus Claude Code'is**.
+2. Claude teeb muudatuse eraldi harus skilli `poe-muudatus` järgi, käivitab testid ja avab PR-i eestikeelse kirjeldusega (vorm: `.github/pull_request_template.md`).
+3. GitHub Actions (`ci.yml`) käivitab iga PR-i puhul lint'i, tüübikontrolli, ühiktestid, build'i ja Playwrighti testid. Playwrighti raport ja ebaõnnestunud testide ekraanipildid salvestatakse artefaktidena. Kui Vercel on ühendatud, testib `avaldamise-kontroll.yml` ka eelvaadet.
+4. Kasutaja otsustab: parandus käib samas harus, liitmise teeb kasutaja ise.
+5. Pärast liitmist avaldab Vercel `main`-i productionisse ja `avaldamise-kontroll.yml` testib avalikku poodi.
 
-Claude ei liida PR-e ega avalda productionisse ka GitHubis. Production on Verceli automaatne samm pärast inimese tehtud liitmist.
+GitHubis ei ole Claude'i API-t kasutavat automaatikat (nt `anthropics/claude-code-action`) ja seda ei lisata.
