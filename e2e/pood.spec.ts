@@ -43,6 +43,115 @@ test('toote lisamine uuendab ostukorvi loendurit', async ({ page }) => {
   await expect(cartLink(page)).toHaveAccessibleName('Ostukorv, 2 toodet');
 });
 
+test.describe('avalehel koguse vähendamine ja eemaldamine', () => {
+  const card = (page: Page, name: string) =>
+    page.locator('.product-card').filter({ has: page.getByRole('heading', { name, exact: true }) });
+  const decreaseButton = (page: Page, name: string) =>
+    page.getByRole('button', { name: `Vähenda kogust: ${name}` });
+  const removeButton = (page: Page, name: string) =>
+    page.getByRole('button', { name: `Eemalda ostukorvist: ${name}` });
+
+  test('nupud ilmuvad ainult ostukorvis olevale tootele', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByRole('button', { name: /^Vähenda kogust:/ })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^Eemalda ostukorvist:/ })).toHaveCount(0);
+
+    await addButton(page, 'Sadu Pods').click();
+    await expect(card(page, 'Sadu Pods')).toContainText('Ostukorvis: 1 tk');
+    await expect(decreaseButton(page, 'Sadu Pods')).toBeVisible();
+    await expect(removeButton(page, 'Sadu Pods')).toBeVisible();
+    await expect(removeButton(page, 'Sadu Pods')).toHaveText('Eemalda');
+    await expect(page.getByRole('button', { name: /^Vähenda kogust:/ })).toHaveCount(1);
+
+    for (const btn of [decreaseButton(page, 'Sadu Pods'), removeButton(page, 'Sadu Pods')]) {
+      const box = (await btn.boundingBox())!;
+      expect(box.height).toBeGreaterThanOrEqual(44);
+      expect(box.width).toBeGreaterThanOrEqual(44);
+    }
+  });
+
+  test('vähendamine vähendab kogust ja kogusel 1 eemaldab toote', async ({ page }) => {
+    await page.goto('/');
+    await addButton(page, 'Stuudio 7').click();
+    await addButton(page, 'Stuudio 7').click();
+    await addButton(page, 'Stuudio 7').click();
+    await expect(cartCount(page)).toHaveText('3');
+
+    await decreaseButton(page, 'Stuudio 7').click();
+    await expect(card(page, 'Stuudio 7')).toContainText('Ostukorvis: 2 tk');
+    await expect(cartCount(page)).toHaveText('2');
+    await expect(page.getByRole('status')).toHaveText(/Stuudio 7 kogus vähenes/);
+
+    await decreaseButton(page, 'Stuudio 7').click();
+    await decreaseButton(page, 'Stuudio 7').click();
+    await expect(cartCount(page)).toHaveText('0');
+    await expect(card(page, 'Stuudio 7')).not.toContainText('Ostukorvis');
+    await expect(decreaseButton(page, 'Stuudio 7')).toHaveCount(0);
+    await expect(page.getByRole('status')).toHaveText(/Stuudio 7 eemaldati ostukorvist/);
+  });
+
+  test('eemaldamine eemaldab ainult selle toote ja püsib värskendamisel', async ({ page }) => {
+    await page.goto('/');
+    await addButton(page, 'Laine Bluetooth').click();
+    await addButton(page, 'Laine Bluetooth').click();
+    await addButton(page, 'Jooks Sport').click();
+    await expect(cartCount(page)).toHaveText('3');
+
+    await removeButton(page, 'Laine Bluetooth').click();
+    await expect(cartCount(page)).toHaveText('1');
+    await expect(card(page, 'Laine Bluetooth')).not.toContainText('Ostukorvis');
+    await expect(card(page, 'Jooks Sport')).toContainText('Ostukorvis: 1 tk');
+
+    await page.reload();
+    await expect(cartCount(page)).toHaveText('1');
+    await cartLink(page).click();
+    await expect(cartLines(page)).toHaveCount(1);
+    await expect(cartLines(page)).toContainText('Jooks Sport');
+  });
+
+  test('klaviatuuriga eemaldamisel liigub fookus lisamisnupule', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'Klaviatuurivoog on mõeldud lauaarvutile');
+    await page.goto('/');
+    await addButton(page, 'Sadu Pods').focus();
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Enter');
+
+    await decreaseButton(page, 'Sadu Pods').focus();
+    await page.keyboard.press('Enter');
+    await expect(card(page, 'Sadu Pods')).toContainText('Ostukorvis: 1 tk');
+    await expect(decreaseButton(page, 'Sadu Pods')).toBeFocused();
+
+    await page.keyboard.press('Tab');
+    await expect(removeButton(page, 'Sadu Pods')).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(cartCount(page)).toHaveText('0');
+    await expect(addButton(page, 'Sadu Pods')).toBeFocused();
+  });
+
+  test('mobiilis pole rõhtsat kerimist ega kattuvaid nuppe', async ({ page, isMobile }) => {
+    test.skip(!isMobile, 'Ainult mobiiliprojektis');
+    await page.goto('/');
+    await addButton(page, 'Põhjala ANC').tap();
+    await expect(decreaseButton(page, 'Põhjala ANC')).toBeVisible();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
+    ).toBe(true);
+
+    const boxes = await Promise.all(
+      [addButton(page, 'Põhjala ANC'), decreaseButton(page, 'Põhjala ANC'), removeButton(page, 'Põhjala ANC')].map(
+        async (b) => (await b.boundingBox())!,
+      ),
+    );
+    const overlaps = (a: (typeof boxes)[0], b: (typeof boxes)[0]) =>
+      a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+    for (let i = 0; i < boxes.length; i++)
+      for (let j = i + 1; j < boxes.length; j++) expect(overlaps(boxes[i], boxes[j])).toBe(false);
+
+    await decreaseButton(page, 'Põhjala ANC').tap();
+    await expect(cartCount(page)).toHaveText('0');
+  });
+});
+
 test('sama toote kaks lisamist annab ühe rea kogusega kaks', async ({ page }) => {
   await page.goto('/');
   await addButton(page, 'Sadu Pods').click();
