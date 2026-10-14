@@ -26,7 +26,9 @@ flowchart TD
 | **H** Production | Vercel ehitab `main`-i ja avaldab selle ise. | Vercel (production-haru `main`) |
 | **I** Avaliku poe kontroll | Kui production-deployment on valmis, käivituvad brauseritestid avaliku aadressi vastu. Ebaõnnestumisel avatakse issue sildiga `tootmine`. | `.github/workflows/avaldamise-kontroll.yml` |
 
-GitHubis ei ole Claude'i API-t kasutavat automaatikat. Claude töötab ainult sinu masinas, GitHub ainult testib.
+Lisaks vaatab iga PR-i üle **PR-i ülevaataja**, Claude Code'i routine. Ta postitab PR-ile koodiülevaatuse leiud ridade juurde ja kokkuvõtte kommentaari „PR-i ülevaataja”: CI tulemused, testide piisavus ja exploratory testimise leiud eelvaatel või kohalikul build'il. Ülevaataja ainult kommenteerib, ei muuda koodi ega liida PR-e. Seadistus on failis `.pr-ulevaataja.yml`, tööriist ise privaatses repos `ojapriit/pr-ulevaataja` (vt sealt `docs/seadistus.md`).
+
+GitHub Actionsis Claude'i ei käivitata ja Anthropicu API-võtmeid GitHubis ei hoita. Claude töötab sinu masinas või Claude'i pilves (routine'id), GitHub ainult testib.
 
 ## Artefaktid
 
