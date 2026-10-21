@@ -14,8 +14,8 @@ export function Header({ cartCount, cartHref, isCartView }: HeaderProps) {
           <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true">
             <rect width="32" height="32" rx="8" fill="currentColor" />
             <path d="M8 19v-3a8 8 0 0 1 16 0v3" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" />
-            <rect x="6" y="17" width="5" height="8" rx="2" fill="#f2c14e" />
-            <rect x="21" y="17" width="5" height="8" rx="2" fill="#f2c14e" />
+            <rect x="6" y="17" width="5" height="8" rx="2" fill="#ffd700" />
+            <rect x="21" y="17" width="5" height="8" rx="2" fill="#ffd700" />
           </svg>
           <span>Klapipood</span>
         </a>

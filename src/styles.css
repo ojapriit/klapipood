@@ -1,14 +1,17 @@
 :root {
-  --bg: #f7f6f2;
+  /* Ukraina lipu värvid: sinine ja kollane. */
+  --bg: #f3f7fc;
   --surface: #ffffff;
-  --text: #1d211f;
-  --muted: #5a625d;
-  --border: #dedcd4;
-  --brand: #1f4d3a;
-  --brand-hover: #163a2b;
+  --text: #13213a;
+  --muted: #4d5b70;
+  --border: #d3dfee;
+  --brand: #0057b7;
+  --brand-hover: #00458f;
   --brand-contrast: #ffffff;
-  --accent: #f2c14e;
-  --focus: #2563eb;
+  --accent: #ffd700;
+  --accent-contrast: #002b5c;
+  --focus: #002b5c;
+  --hover-bg: #e3ecf7;
   --radius: 14px;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.05), 0 4px 16px rgb(0 0 0 / 0.05);
 
@@ -107,7 +110,7 @@ main:focus {
 
 .demo-banner {
   background: var(--accent);
-  color: #3b2d07;
+  color: var(--accent-contrast);
   text-align: center;
   font-weight: 600;
   font-size: 0.95rem;
@@ -120,7 +123,7 @@ main:focus {
   z-index: 10;
   background: rgb(255 255 255 / 0.92);
   backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 3px solid var(--accent);
 }
 
 .header-inner {
@@ -403,11 +406,11 @@ main {
 }
 
 .qty-btn:hover:not(:disabled) {
-  background: #ebe9e1;
+  background: var(--hover-bg);
 }
 
 .qty-btn:disabled {
-  color: #b0b3ae;
+  color: #a9b4c4;
   cursor: not-allowed;
 }
 
