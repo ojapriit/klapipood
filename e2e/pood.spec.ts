@@ -435,3 +435,78 @@ test.describe('avaleht ilma toodete otsinguta', () => {
     ).toBe(true);
   });
 });
+
+test.describe('Ukraina sinine-kollane värvigamma', () => {
+  const SININE = 'rgb(0, 87, 183)';
+  const KOLLANE = 'rgb(255, 215, 0)';
+
+  /** WCAG kontrastisuhe kahe `rgb(...)` väärtuse vahel. */
+  const contrast = (a: string, b: string) => {
+    const lum = (c: string) => {
+      const [r, g, bl] = (c.match(/\d+/g) ?? []).slice(0, 3).map((v) => {
+        const x = Number(v) / 255;
+        return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r + 0.7152 * g + 0.0722 * bl;
+    };
+    const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+    return (hi + 0.05) / (lo + 0.05);
+  };
+  const css = (page: Page, selector: string, prop: string) =>
+    page.locator(selector).first().evaluate((el, p) => getComputedStyle(el).getPropertyValue(p), prop);
+
+  test('demoteade on kollasel taustal ja loetav', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByText('Demopood — tellimusi ei vormistata')).toBeVisible();
+    const bg = await css(page, '.demo-banner', 'background-color');
+    expect(bg).toBe(KOLLANE);
+    expect(contrast(bg, await css(page, '.demo-banner', 'color'))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  test('põhinupud, loendur ja logo on sinised ning päisel kollane joon', async ({ page }) => {
+    await page.goto('/');
+    await addButton(page, 'Põhjala ANC').click();
+    // Hiir eemale, et hover-üleminek ei mõjutaks värvi.
+    await page.mouse.move(0, 0);
+    await expect(addButton(page, 'Sadu Pods')).toHaveCSS('background-color', SININE);
+    const sadu = addButton(page, 'Sadu Pods');
+    const btnBg = await sadu.evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(contrast(btnBg, await sadu.evaluate((el) => getComputedStyle(el).color))).toBeGreaterThanOrEqual(4.5);
+    expect(await css(page, '.cart-count', 'background-color')).toBe(SININE);
+    expect(await css(page, '.logo', 'color')).toBe(SININE);
+    expect(await css(page, '.site-header', 'border-bottom-color')).toBe(KOLLANE);
+    await expect(page.locator('.logo svg rect[fill="#ffd700"]')).toHaveCount(2);
+  });
+
+  test('ostukorvi vaade kasutab sama gammat', async ({ page }) => {
+    await page.goto('/');
+    await addButton(page, 'Põhjala ANC').click();
+    await cartLink(page).click();
+    await expect(cartLines(page)).toHaveCount(1);
+    expect(await css(page, '.cart-count', 'background-color')).toBe(SININE);
+    expect(await css(page, '.site-header', 'border-bottom-color')).toBe(KOLLANE);
+    const bodyBg = await css(page, 'body', 'background-color');
+    expect(contrast(bodyBg, await css(page, '.unit-price', 'color'))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  test('fookusrõngas on nähtav ja kontrastne', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'Klaviatuurivoog on mõeldud lauaarvutile');
+    await page.goto('/');
+    await page.getByRole('heading', { level: 1 }).focus();
+    await page.keyboard.press('Tab');
+    const btn = addButton(page, 'Põhjala ANC');
+    await expect(btn).toBeFocused();
+    const outline = await btn.evaluate((el) => getComputedStyle(el).outlineColor);
+    expect(await btn.evaluate((el) => getComputedStyle(el).outlineStyle)).toBe('solid');
+    expect(contrast(outline, await css(page, 'body', 'background-color'))).toBeGreaterThanOrEqual(3);
+  });
+
+  test('tootepildid jäävad kohalikeks SVG-deks', async ({ page }) => {
+    await page.goto('/');
+    const srcs = await page.locator('.product-card img').evaluateAll((imgs) =>
+      imgs.map((i) => (i as HTMLImageElement).getAttribute('src') ?? ''),
+    );
+    expect(srcs).toHaveLength(6);
+    for (const src of srcs) expect(src).toMatch(/\/images\/[a-z]+\.svg$/);
+  });
+});
