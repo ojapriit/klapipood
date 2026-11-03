@@ -1,0 +1,53 @@
+# PR-i ülevaataja seadistus (tööriist: privaatne repo ojapriit/pr-ulevaataja, mall: mall/pr-ulevaataja.yml).
+# Faili loeb Claude. Piirangute lõdvendamine vajab omaniku luba (vt CLAUDE.md „Claude ja GitHub”).
+
+keel: et
+
+reeglid:
+  - CLAUDE.md
+  - .claude/skills/poe-muudatus/SKILL.md
+
+paigaldus: npm ci
+
+ci:
+  noutud: true          # ci.yml + avaldamise-kontroll.yml
+  oota_minutit: 20
+
+testid:
+  - npm run lint
+  - npm run typecheck
+  - npm run test
+  - npm run build
+  - npm run test:e2e
+
+eelvaade:
+  kaugelt: vercel
+  # Verceli eelvaated võivad olla sisselogimise taga; siis testitakse kohalikku build'i.
+  kohalik:
+    ehitus: npm run build
+    kaivitus: npx vite preview --port 4173 --strictPort
+    url: http://localhost:4173
+
+uurimine:
+  teed:
+    - /
+    - /#/ostukorv
+  min_siht_px: 44
+  rakenduse_failid: ["src/**", "public/**", "index.html", "package.json", "package-lock.json", "vite.config.ts", "tsconfig*.json"]
+  fookus: |
+    - Toote lisamine ostukorvi avalehelt, koguse muutmine ja eemaldamine; päise loendur ja summa on õiged (hinnad sentides, kuvamisel eurod).
+    - Ostukorv säilib lehe värskendamisel; vigane või vana localStorage'i sisu (`klapipood:ostukorv`) ei lõhu rakendust.
+    - Kogu ostuvoog käib ainult klaviatuuriga, fookus on nähtav ja vaate vahetusel liigub fookus pealkirjale.
+    - Mobiilis (≤ 640 px) pole rõhtset kerimist ega kattuvaid nuppe; nupud on vähemalt 44 px.
+    - Demoteade „Demopood — tellimusi ei vormistata” on alati nähtav.
+    - Kõik kasutajaliidese tekstid on eesti keeles.
+
+turvalisus:
+  fork_pr: ainult-kood
+
+piirangud:
+  maks_pr_kaivituse_kohta: 3
+  maks_rea_kommentaare: 10
+  valista:
+    - package-lock.json
+    - public/images/**

@@ -54,7 +54,13 @@ Kirjeldus ja ühekordne seadistus: `docs/tooprotsess.md`. Lühidalt:
 1. Kasutaja annab muudatuspäringu **kohalikus Claude Code'is**.
 2. Claude teeb muudatuse eraldi harus skilli `poe-muudatus` järgi, käivitab testid ja avab PR-i eestikeelse kirjeldusega (vorm: `.github/pull_request_template.md`).
 3. GitHub Actions (`ci.yml`) käivitab iga PR-i puhul lint'i, tüübikontrolli, ühiktestid, build'i ja Playwrighti testid. Playwrighti raport ja ebaõnnestunud testide ekraanipildid salvestatakse artefaktidena. Kui Vercel on ühendatud, testib `avaldamise-kontroll.yml` ka eelvaadet.
-4. Kasutaja otsustab: parandus käib samas harus, liitmise teeb kasutaja ise.
-5. Pärast liitmist avaldab Vercel `main`-i productionisse ja `avaldamise-kontroll.yml` testib avalikku poodi.
+4. PR-i ülevaataja (Claude Code'i routine) postitab PR-ile koodiülevaatuse, CI kokkuvõtte ja exploratory testimise tulemused.
+5. Kasutaja otsustab: parandus käib samas harus, liitmise teeb kasutaja ise.
+6. Pärast liitmist avaldab Vercel `main`-i productionisse ja `avaldamise-kontroll.yml` testib avalikku poodi.
 
-GitHubis ei ole Claude'i API-t kasutavat automaatikat (nt `anthropics/claude-code-action`) ja seda ei lisata.
+## Claude ja GitHub
+
+- **GitHub Actionsis Claude'i ei käivitata** (nt `anthropics/claude-code-action`) ja repos ega GitHubi saladustes ei hoita Anthropicu API-võtmeid. Seda ei lisata.
+- **Claude Code'i routine'id on lubatud.** Need jooksevad Claude'i pilves, mitte GitHubis, ja pääsevad repole ligi Claude'i GitHubi rakenduse kaudu. Praegu:
+  - **PR-i ülevaataja** (privaatne repo `ojapriit/pr-ulevaataja`, seadistus `.pr-ulevaataja.yml`). Käivitub PR-sündmusel ja kord tunnis. See **ainult loeb ja kommenteerib**: ei pushi, ei loo harusid, ei liida, ei kinnita ega sulge PR-e ega muuda silte, õigusi ega seadeid. Leiud on soovituslikud; otsuse teeb omanik.
+- Uue routine'i lisamine, olemasoleva õiguste laiendamine (nt push, liitmine) ja `.pr-ulevaataja.yml` piirangute lõdvendamine (nt `turvalisus.fork_pr`) vajavad omaniku eraldi luba ega käi tavalise poe muudatuse käigus.
