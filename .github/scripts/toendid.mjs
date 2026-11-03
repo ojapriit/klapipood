@@ -4,6 +4,7 @@
 //   reports/e2e.json   – Playwrighti JSON-aruanne (kui olemas)
 //   TOENDID_PEALKIRI   – kommentaari pealkiri
 //   TESTITUD_URL       – avaldatud versiooni aadress, mille vastu testiti (valikuline)
+//   LIGIPAAS_MARKUS    – selgitus, kui avaldatud aadress polnud avalikult ligipääsetav (valikuline)
 //   SAMM_<NIMI>        – sammude tulemused (success/failure/cancelled/skipped), nt SAMM_LINT=success
 // Kasutus: node .github/scripts/toendid.mjs > reports/toendid.md
 import { existsSync, readFileSync } from 'node:fs';
@@ -11,6 +12,7 @@ import { existsSync, readFileSync } from 'node:fs';
 const env = process.env;
 
 const STEPS = [
+  ['SAMM_LIGIPAAS', 'Ligipääs', 'HTTP-päring testitavale aadressile'],
   ['SAMM_LINT', 'Lint', '`npm run lint`'],
   ['SAMM_TYPECHECK', 'Tüübikontroll', '`npm run typecheck`'],
   ['SAMM_UNIT', 'Ühiktestid', '`npm run test`'],
@@ -87,6 +89,7 @@ const lines = [
   '',
 ];
 if (env.TESTITUD_URL) lines.push(`**Testitud aadress:** ${env.TESTITUD_URL}`, '');
+if (env.LIGIPAAS_MARKUS) lines.push(`> ⚠️ ${env.LIGIPAAS_MARKUS}`, '');
 lines.push('| Kontroll | Käsk | Tulemus |', '|---|---|---|', ...rows, '');
 
 const failed = e2eTests('unexpected');

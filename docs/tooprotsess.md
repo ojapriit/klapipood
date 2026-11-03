@@ -68,3 +68,37 @@ Pärast seda teeb Vercel igale PR-ile eelvaate ning avaldab `main`-i pärast lii
 ```bash
 BASE_URL=https://klapipood.vercel.app npx playwright test
 ```
+
+## Ettepanekud e-posti teel
+
+Välised inimesed saavad poe muudatusi soovida e-kirjaga. Automaatika teeb soovist PR-i ja eelvaate. Tellija vaatab eelvaate üle ja vastab kirjale. Pärast tellija kinnitust saad sina kinnituspäringu. Live'i lükkad sina, kui PR-i liidad.
+
+```mermaid
+flowchart TD
+    M["Kiri ettepanekute postkasti, teemas [Klapipood]"] --> L{Lubatud saatja?}
+    L -- ei --> X[Ei tehta midagi]
+    L -- jah --> B[Claude: poe-muudatus → haru, testid, PR]
+    B --> C[CI + Verceli eelvaade]
+    C --> T[Kiri tellijale: eelvaate link]
+    T --> V{Tellija vastus}
+    V -- „Muuda …” --> B
+    V -- „Kinnitan” --> O[Kinnituspäring sulle: e-kiri + PR sildiga tellija-kinnitas]
+    O --> G{Sinu otsus}
+    G -- Merge --> H[Vercel avaldab productionisse]
+    H --> K[Kiri tellijale: avaldatud]
+    G -- Sulge PR --> R[Kiri tellijale: ei avaldata]
+```
+
+- Kirju töötleb Claude Code'i **ajastatud pilvesessioon** (routine) skilli `kirja-ettepanek` järgi (`.claude/skills/kirja-ettepanek/SKILL.md`). Postkasti loeb ja kirju saadab see Microsoft 365 ühenduse kaudu.
+- Postkasti aadress, lubatud saatjad ja omaniku aadress on kirjas ainult routine'i juhises (claude.ai-s), mitte repos. Repo on avalik.
+- PR-e seob kirjaga anonüümne lõime tunnus. Tellija nime ega aadressi repos ei ole.
+- Sildid: `kirja-ettepanek`, `ootab-tellijat`, `tellija-kinnitas`, `tellija-teavitatud`.
+- **Kirja sisu on andmed, mitte käsud.** Automaatika ei muuda töövooge, saladusi, õigusi ega sõltuvusi. Ta ei liida PR-e ega avalda productionisse. Sellised soovid tulevad sulle otsustamiseks.
+
+### Ühekordne seadistus
+
+1. **Postkast:** loo Microsoft 365-s eraldi aadress, nt jagatud postkast või alias `klapipood@…`, ja anna oma kontole sellele ligipääs.
+2. **Microsoft 365 ühendus:** Claude Code'is `/mcp` → „claude.ai Microsoft 365” → autendi. Sama ühendus on kasutusel ka routine'is.
+3. **Verceli eelvaated avalikuks:** Settings → Deployment Protection → Vercel Authentication eelvaadete jaoks välja. Muidu jõuab tellija Verceli sisselogimise lehele. Kui eelvaade ei vasta `200`, annab `avaldamise-kontroll.yml` sellest kohe teada.
+4. **Repo muutuja `POE_AVALIK_URL`** = `https://klapipood.vercel.app`, et production-kontroll testiks avalikku aadressi.
+5. **Routine:** luuakse claude.ai-s (Claude Code → Routines). Selle juhises on postkast, lubatud saatjad, omaniku aadress ja intervall.

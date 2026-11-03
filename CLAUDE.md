@@ -57,4 +57,6 @@ Kirjeldus ja ühekordne seadistus: `docs/tooprotsess.md`. Lühidalt:
 4. Kasutaja otsustab: parandus käib samas harus, liitmise teeb kasutaja ise.
 5. Pärast liitmist avaldab Vercel `main`-i productionisse ja `avaldamise-kontroll.yml` testib avalikku poodi.
 
+Välised inimesed saavad muudatusi soovida e-kirjaga: ajastatud Claude Code'i pilvesessioon töötleb neid skilli `kirja-ettepanek` järgi (vt `docs/tooprotsess.md`). Ka see ei liida ega avalda; live'i lükkab omanik PR-i liitmisega.
+
 GitHubis ei ole Claude'i API-t kasutavat automaatikat (nt `anthropics/claude-code-action`) ja seda ei lisata.
